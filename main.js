@@ -51,6 +51,13 @@ function updateLatex(row) {
     latexOutput.innerText = latex;
 
     MathJax.typeset();
+
+    updateOutput();
+}
+
+function updateOutput() {
+    document.getElementById("final").innerText =
+        [...document.querySelectorAll("td > code")].map(o => o.innerText).reduce((a, b) => `${a}\\\\\n${b}`);
 }
 
 function tableToMatrix(table) {
@@ -128,6 +135,15 @@ function defaultRow() {
     sizeSplit.innerHTML = "x";
     let colCount = rowCount.cloneNode(false);
 
+    let deleteButton = document.createElement("button");
+    deleteButton.classList.add("delete");
+    deleteButton.innerHTML = "Delete Matrix";
+
+    deleteButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        row.parentElement.removeChild(row);
+    });
+
     rowCount.addEventListener("change", (e) => {
         e.preventDefault();
         resizeMatrix(row);
@@ -140,6 +156,7 @@ function defaultRow() {
     sizeLabel.appendChild(rowCount);
     sizeLabel.appendChild(sizeSplit);
     sizeLabel.appendChild(colCount);
+    sizeLabel.appendChild(deleteButton);
 
     let divider = document.createElement("hr");
 
@@ -172,8 +189,18 @@ function copyRow() {
     let tableBody = document.querySelector("tbody");
     let previous = document.querySelector("body > table > tbody > tr:last-child");
     if (previous != null) {
-        tableBody.append(previous.cloneNode(true));
-        return;
+        let clone = previous.cloneNode(true);
+        // Rebind matrix edits.
+        [...clone.querySelectorAll("input[type=text]")].forEach(o => o.addEventListener("change", (e) => {
+            e.preventDefault();
+            updateLatex(clone);
+        }));
+        // Rebind matrix size
+        [...clone.querySelectorAll("label > input[type=number]")].forEach(o => o.addEventListener("change", (e) => {
+            e.preventDefault();
+            resizeMatrix(clone);
+        }));
+        tableBody.append(clone);
     } else {
         alert("No rows found!");
     }
