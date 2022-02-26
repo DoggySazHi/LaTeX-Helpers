@@ -200,6 +200,11 @@ function copyRow() {
             e.preventDefault();
             resizeMatrix(clone);
         }));
+        // Fix delete button
+        clone.querySelector(".delete").addEventListener("click", (e) => {
+            e.preventDefault();
+            clone.parentElement.removeChild(clone);
+        });
         tableBody.append(clone);
     } else {
         alert("No rows found!");
