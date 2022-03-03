@@ -1,5 +1,8 @@
 "use strict";
 
+let typesetting = false;
+let typesetTimer = -1;
+
 onInit();
 
 function onInit() {
@@ -11,6 +14,31 @@ function onInit() {
         e.preventDefault();
         copyRow();
     });
+    setInterval(perSecond, 1000);
+}
+
+function triggerTypeset() {
+    if (!typesetting)
+        typesetTimer = 2;
+}
+
+async function perSecond() {
+    let timerOutput = document.getElementById("timer");
+    if (typesetTimer >= 0) {
+        if (typesetTimer > 0) {
+            timerOutput.innerHTML = "Waiting for changes to stop... (" + typesetTimer + " second" + (typesetTimer === 1 ? ")" : "s)");
+            console.log(typesetTimer);
+        }
+        --typesetTimer;
+    }
+
+    if (typesetTimer === 0) {
+        timerOutput.innerText = "Typesetting...";
+        typesetting = true;
+        await MathJax.typesetPromise();
+        timerOutput.innerText = "Ready!";
+        typesetting = false;
+    }
 }
 
 function tryParseInt(i) {
@@ -50,7 +78,7 @@ function updateLatex(row) {
     codeOutput.innerText = latex;
     latexOutput.innerText = latex;
 
-    MathJax.typeset();
+    triggerTypeset();
 
     updateOutput();
 }
@@ -79,7 +107,7 @@ function matrixToTable(matrix) {
             input.type = "text";
             if (matrix[i][j] != null)
                 input.value = matrix[i][j];
-            input.addEventListener("change", (e) => {
+            input.addEventListener("input", (e) => {
                 e.preventDefault();
                 // This is ugly.
                 updateLatex(row.parentElement.parentElement.parentElement);
@@ -144,11 +172,11 @@ function defaultRow() {
         row.parentElement.removeChild(row);
     });
 
-    rowCount.addEventListener("change", (e) => {
+    rowCount.addEventListener("input", (e) => {
         e.preventDefault();
         resizeMatrix(row);
     });
-    colCount.addEventListener("change", (e) => {
+    colCount.addEventListener("input", (e) => {
         e.preventDefault();
         resizeMatrix(row);
     });
@@ -180,9 +208,10 @@ function defaultRow() {
 
 function addRow() {
     let tableBody = document.querySelector("tbody");
-    tableBody.append(defaultRow());
+    let row = defaultRow();
+    tableBody.append(row);
 
-    MathJax.typeset();
+    updateLatex(row);
 }
 
 function copyRow() {
@@ -191,12 +220,12 @@ function copyRow() {
     if (previous != null) {
         let clone = previous.cloneNode(true);
         // Rebind matrix edits.
-        [...clone.querySelectorAll("input[type=text]")].forEach(o => o.addEventListener("change", (e) => {
+        [...clone.querySelectorAll("input[type=text]")].forEach(o => o.addEventListener("input", (e) => {
             e.preventDefault();
             updateLatex(clone);
         }));
         // Rebind matrix size
-        [...clone.querySelectorAll("label > input[type=number]")].forEach(o => o.addEventListener("change", (e) => {
+        [...clone.querySelectorAll("label > input[type=number]")].forEach(o => o.addEventListener("input", (e) => {
             e.preventDefault();
             resizeMatrix(clone);
         }));
@@ -206,8 +235,9 @@ function copyRow() {
             clone.parentElement.removeChild(clone);
         });
         tableBody.append(clone);
+
+        updateLatex(clone);
     } else {
         alert("No rows found!");
     }
-    MathJax.typeset();
 }
